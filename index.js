@@ -13,17 +13,15 @@ app.use(cors());
 const port = 3000;
 
 const species_collection="species";
-const distribution_collection="distribution";
+const facts_collection="facts"
 
 console.log(process.env.MONGO_URI)
 
-function trim(array) {
+function trimAway(array) {
     array = array.map(eachItem => eachItem.trim())
     console.log(array)
     return array
 }
-
-trim('hello   ', '     bye');
 
 async function main() {
     await MongoUtil.connect(process.env.MONGO_URI, "tgc16_p2_orchids");
@@ -41,41 +39,46 @@ async function main() {
 
             let hybridParents = req.body.hybridParents || [];
             hybridParents = Array.isArray(hybridParents) ? hybridParents : [hybridParents];
+            trimAway(hybridParents);
 
             let colours = req.body.colours || [];
             colours = Array.isArray(colours) ? colours : [colours];
+            trimAway(colours);
 
             let scents = req.body.scents || [];
             scents = Array.isArray(scents) ? scents : [scents];
+            trimAway(scents);
 
             let creatorNameExpress = req.body.creation.creatorName;
             let creationYearExpress = parseInt(req.body.creation.creationYear);
             let distributionExpress = req.body.distributionId;
             let conservationStatusExpress = req.body.conservationStatusId;
-            
+
+            // let fact = req.body.fact;
+            // let datePosted = new Date();
 
             const db = MongoUtil.getDB();
 
-            await db.collection(species_collection).insertOne({
-                commonName,
-                officialName,
-                genus,
-                species,
-                hybridParents,
-                creation: {
-                    'creatorName': creatorNameExpress,
-                    'creationYear': creationYearExpress
-                },
-                colours,
-                petalPattern,
-                scents,
-                floralGrouping,
-                imageUrl,
-                distribution: ObjectId(distributionExpress),
-                conservationStatus: ObjectId(conservationStatusExpress),
-                facts:[]
-            })
-            res.status(200).send({"message":"The record has been added"})
+            let results = await db.collection(species_collection).insertOne({
+                            commonName,
+                            officialName,
+                            genus,
+                            species,
+                            hybridParents,
+                            creation: {
+                                'creatorName': creatorNameExpress,
+                                'creationYear': creationYearExpress
+                            },
+                            colours,
+                            petalPattern,
+                            scents,
+                            floralGrouping,
+                            imageUrl,
+                            distribution: ObjectId(distributionExpress),
+                            conservationStatus: ObjectId(conservationStatusExpress),
+                            facts:[]
+                        })
+            res.status(200).send(results)
         } catch (e){
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
             console.log(e)
@@ -151,9 +154,91 @@ async function main() {
         }
     })
 
+    // update document in orchids species collection
     app.put('/orchid_species/:id', async function(req, res){
+        try{
+            let {
+                commonName, officialName, genus, species,
+                petalPattern, floralGrouping, imageUrl
+            } = req.body
 
+            let hybridParents = req.body.hybridParents || [];
+            hybridParents = Array.isArray(hybridParents) ? hybridParents : [hybridParents];
+            trimAway(hybridParents);
+
+            let colours = req.body.colours || [];
+            colours = Array.isArray(colours) ? colours : [colours];
+            trimAway(colours);
+
+            let scents = req.body.scents || [];
+            scents = Array.isArray(scents) ? scents : [scents];
+            trimAway(scents);
+
+            let creatorNameExpress = req.body.creation.creatorName;
+            let creationYearExpress = parseInt(req.body.creation.creationYear);
+            let distributionExpress = req.body.distributionId;
+            let conservationStatusExpress = req.body.conservationStatusId;
+
+            // need to extract out facts in order to not erase facts with every update
+            // let facts=
+
+            const db = MongoUtil.getDB();
+
+            let results = await db.collection(species_collection).updateOne({
+                '_id': ObjectId(req.params.id)},
+                {
+                    '$set':{
+                        commonName,
+                        officialName,
+                        genus,
+                        species,
+                        hybridParents,
+                        creation: {
+                            'creatorName': creatorNameExpress,
+                            'creationYear': creationYearExpress
+                        },
+                        colours,
+                        petalPattern,
+                        scents,
+                        floralGrouping,
+                        imageUrl,
+                        distribution: ObjectId(distributionExpress),
+                        conservationStatus: ObjectId(conservationStatusExpress)
+                        //FACTS!!!!
+                    }
+                
+            })
+
+            res.status(200).send(results)
+
+        } catch(e){
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
     })
+
+    //create new fact for specific species
+    app.post('/orchid_facts/:species_id', async function(req, res){
+        try{
+            let fact = req.body.fact;
+            let datePosted = new Date();
+
+            const db = MongoUtil.getDB();
+
+            let results = await db.collection(facts_collection).insertOne({
+                'fact': fact,
+                'datePosted': datePosted
+            })
+
+            res.status(200).send(results)
+
+
+        } catch(e){
+            res.status(500).json({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
+    // app.get()
+
 
 }
 
