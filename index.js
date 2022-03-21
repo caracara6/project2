@@ -258,6 +258,27 @@ async function main() {
         }
     })
 
+    //how to test this post route???
+    //add new favourite to user
+    app.post('/users/:user_id/favourites', async function(req, res){
+        try{
+            let favourite = req.body.orchidId
+
+            let results = await db.collection(usersCollection).updateOne({
+                "_id":ObjectId(req.params.user_id)
+            },{
+                '$push':{
+                    'favourites': ObjectId(favourite)
+                }
+            })
+
+            res.status(200).send(results)
+        } catch(e){
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
+
 
 }
 
