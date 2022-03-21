@@ -14,6 +14,7 @@ const port = 3000;
 
 const species_collection="species";
 const facts_collection="facts"
+const usersCollection="users"
 
 console.log(process.env.MONGO_URI)
 
@@ -238,6 +239,24 @@ async function main() {
     })
 
     // app.get()
+
+    //create new user in users collection
+    app.post('/users', async function(req, res){
+        try{
+            let {userEmail} = req.body;
+
+            const db = MongoUtil.getDB();
+
+            let results = await db.collection(usersCollection).insertOne({
+                userEmail,
+                favourites : []
+        })
+        res.status(200).send(results)
+        } catch {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
 
 
 }
