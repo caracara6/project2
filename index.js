@@ -12,10 +12,18 @@ app.use(cors());
 
 const port = 3000;
 
-const orchids_collection="species";
-const regions_collection="distribution";
+const species_collection="species";
+const distribution_collection="distribution";
 
 console.log(process.env.MONGO_URI)
+
+function trim(array) {
+    array = array.map(eachItem => eachItem.trim())
+    console.log(array)
+    return array
+}
+
+trim('hello   ', '     bye');
 
 async function main() {
     await MongoUtil.connect(process.env.MONGO_URI, "tgc16_p2_orchids");
@@ -28,11 +36,11 @@ async function main() {
         try{
             let {
                 commonName, officialName, genus, species,
-                petalPattern, floralGrouping, imageUrl, conservationStatus
+                petalPattern, floralGrouping, imageUrl
             } = req.body
 
             let hybridParents = req.body.hybridParents || [];
-            hybridParents = Array.isArray(hybridParents) ? hybridParents : [colours];
+            hybridParents = Array.isArray(hybridParents) ? hybridParents : [hybridParents];
 
             let colours = req.body.colours || [];
             colours = Array.isArray(colours) ? colours : [colours];
@@ -40,14 +48,15 @@ async function main() {
             let scents = req.body.scents || [];
             scents = Array.isArray(scents) ? scents : [scents];
 
-            let creatorNameExpress = req.body.creatorName;
-            let creationYearExpress = req.body.creationYear;
-            let distributionExpress = req.body.distribution_id;
+            let creatorNameExpress = req.body.creation.creatorName;
+            let creationYearExpress = parseInt(req.body.creation.creationYear);
+            let distributionExpress = req.body.distributionId;
+            let conservationStatusExpress = req.body.conservationStatusId;
             
 
             const db = MongoUtil.getDB();
 
-            await db.collection(orchids_collection).insertOne({
+            await db.collection(species_collection).insertOne({
                 commonName,
                 officialName,
                 genus,
@@ -57,12 +66,13 @@ async function main() {
                     'creatorName': creatorNameExpress,
                     'creationYear': creationYearExpress
                 },
+                colours,
                 petalPattern,
                 scents,
                 floralGrouping,
                 imageUrl,
                 distribution: ObjectId(distributionExpress),
-                conservationStatus,
+                conservationStatus: ObjectId(conservationStatusExpress),
                 facts:[]
             })
             res.status(200).send({"message":"The record has been added"})
@@ -75,7 +85,6 @@ async function main() {
     // read orchids species collection
     app.get('/orchid_species', async function(req, res){
         try {
-            const db = MongoUtil.getDB();
 
             let criteria = {};
 
@@ -88,24 +97,62 @@ async function main() {
 
             if(req.query.officialName) {
                 criteria['officialName'] = {
-                    '$regex': req.query.commonName,
+                    '$regex': req.query.officialName,
                     '$options': 'i'
                 }
             }
 
-            if(req.query.officialName) {
-                criteria['officialName'] = {
-                    '$regex': req.query.commonName,
+            if(req.query.genus) {
+                criteria['genus'] = {
+                    '$regex': req.query.genus,
                     '$options': 'i'
                 }
             }
 
+            // query within objects??
+            if(req.query.creationYearBefore) {
+                criteria['creation.creationYear'] = {
+                    '$lte': parseInt(req.query.creationYearBefore),
+                }
+            }
 
+            if(req.query.creationYearAfter) {
+                criteria['creation.creationYear'] = {
+                    '$gte': parseInt(req.query.creationYearAfter),
+                }
+            }
 
+            if(req.query.colours) {
+                criteria['colours']={
+                    '$in': [req.query.colours]
+                }
+            }
 
+            const db = MongoUtil.getDB();
 
+            let species = await db.collection(species_collection).find(criteria, {
+                'projection': {
+                    "commonName": 1,
+                    "officialName": 1,
+                    "genus":1,
+                    "creation.creatorName": 1,
+                    "creation.creationYear": 1,
+                    "colours":1,
+                    "imageUrl":1,
+                    "distribution": 1,
+                    "conservationStatus": 1
+                    //how to project distribution name and conservationStatus name instead of id?
+                }
+            }).toArray();
 
+            res.status(200).send(species)
+        } catch (e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
         }
+    })
+
+    app.put('/orchid_species/:id', async function(req, res){
+
     })
 
 }
