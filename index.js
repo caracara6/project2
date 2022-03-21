@@ -258,22 +258,44 @@ async function main() {
         }
     })
 
-    //how to test this post route???
     //add new favourite to user
     app.post('/users/:user_id/favourites', async function(req, res){
         try{
-            let favourite = req.body.orchidId
+            let favouriteOrchid = req.body.orchidId;
+            let officialName = req.body.favourites.officialName;
+
+            const db = MongoUtil.getDB();
 
             let results = await db.collection(usersCollection).updateOne({
                 "_id":ObjectId(req.params.user_id)
             },{
                 '$push':{
-                    'favourites': ObjectId(favourite)
+                    'favourites': {
+                        'speciesId': ObjectId(favouriteOrchid),
+                        'officialName': officialName
+                    }
                 }
             })
 
             res.status(200).send(results)
         } catch(e){
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
+
+    //read all favourites by a user
+    app.get('/users/:user_id/favourites', async function(req, res){
+        try{
+            const db = MongoUtil.getDB();
+            let results = await db.collection(usersCollection).find({},{
+                'projection': {
+                    'favourites.officialName':1
+                }
+            }).toArray();
+            
+            res.status(200).send(results)
+        } catch(e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
             console.log(e)
         }
