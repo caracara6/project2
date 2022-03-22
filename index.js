@@ -4,7 +4,8 @@ require('dotenv').config();
 const ObjectId = require('mongodb').ObjectId;
 const MongoUtil = require('./MongoUtil');
 const validation = require('./middleware/validationMiddleware');
-const schema = require('./validations/schemaValidations')
+const schema = require('./validations/schemaValidations');
+const req = require('express/lib/request');
 
 const app = express();
 
@@ -252,7 +253,35 @@ async function main() {
         }
     })
 
+    //update a fact in species collection
+    app.put('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
+        await MongoUtil.getDB().collection(species_collection).updateOne({
+            '_id':ObjectId(req.params.species_id),
+            'facts._id':ObjectId(req.params.fact_id)
+        },{
+            '$set' : {
+                'facts.$.fact': req.body.fact
+            }
+        })
+    })
+
+    //get all facts of specific orchid
     // app.get()
+
+    //delete a fact in species collection
+    app.delete('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
+        try {
+            await MongoUtil.getDB().collection(species_collection).deleteOne({
+                '_id': ObjectId(req.params.species_id),
+                '_id' : ObjectId(req.params.fact_id)
+            })
+            res.status(200)
+            res.send("done")
+        } catch(e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
 
     //create new user in users collection
     app.post('/users', validation.validation(schema.userSchema), async function(req, res){
@@ -309,6 +338,7 @@ async function main() {
         }
     })
 
+    //delete a favourite from particular user in users collection
     app.delete('/users/:user_id/favourites/:species_id', async function (req, res){
         try {
             console.log(req.params.species_id, req.params.user_id)
