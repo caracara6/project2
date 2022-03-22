@@ -225,26 +225,32 @@ async function main() {
         }
     })
 
-    //create new fact for specific species
-    // app.post('/orchid_facts/:species_id', async function(req, res){
-    //     try{
-    //         let fact = req.body.fact;
-    //         let datePosted = new Date();
+    // create new fact for specific species
+    app.post('/orchid_species/:species_id/facts', async function(req, res){
+        try{
+            let fact = req.body.fact;
 
-    //         const db = MongoUtil.getDB();
+            const db = MongoUtil.getDB();
 
-    //         let results = await db.collection(facts_collection).insertOne({
-    //             'fact': fact,
-    //             'datePosted': datePosted
-    //         })
+            let results = await db.collection(species_collection).updateOne({
+                '_id': ObjectId(req.params.species_id)
+            },{ 
+                '$push' : {
+                    'facts': {
+                        '_id' : new ObjectId(),
+                        fact,
+                        'datePosted': new Date()
+                    }
+                }
+            })
 
-    //         res.status(200).send(results)
+            res.status(200).send(results)
 
 
-    //     } catch(e){
-    //         res.status(500).json({"message":"Internal server error. Please contact administrator"})
-    //     }
-    // })
+        } catch(e){
+            res.status(500).json({"message":"Internal server error. Please contact administrator"})
+        }
+    })
 
     // app.get()
 
