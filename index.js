@@ -31,7 +31,9 @@ async function main() {
     })
 
     //create orchid species document and insert into species collection
+    //check for duplicates in officialName in posting??
     app.post ('/orchid_species', async function(req, res){
+        console.log("===================post orchid species================")
         try{
             let {
                 commonName, officialName, genus, species,
@@ -55,9 +57,9 @@ async function main() {
             let distributionExpress = req.body.distributionId;
             let conservationStatusExpress = req.body.conservationStatusId;
 
-            // let fact = req.body.fact;
-            // let datePosted = new Date();
-
+            
+            let fact = req.body.facts[0].fact
+            
             const db = MongoUtil.getDB();
 
             let results = await db.collection(species_collection).insertOne({
@@ -77,7 +79,13 @@ async function main() {
                             imageUrl,
                             distribution: ObjectId(distributionExpress),
                             conservationStatus: ObjectId(conservationStatusExpress),
-                            facts:[]
+                            facts:[
+                                {
+                                    '_id': new ObjectId(),
+                                    'fact' : fact,
+                                    'datePosted':new Date()
+                                }
+                            ]
                         })
             res.status(200).send(results)
         } catch (e){
@@ -181,7 +189,6 @@ async function main() {
             let conservationStatusExpress = req.body.conservationStatusId;
 
             // need to extract out facts in order to not erase facts with every update
-            // let facts=
 
             const db = MongoUtil.getDB();
 
@@ -204,8 +211,7 @@ async function main() {
                         floralGrouping,
                         imageUrl,
                         distribution: ObjectId(distributionExpress),
-                        conservationStatus: ObjectId(conservationStatusExpress)
-                        //FACTS!!!!
+                        conservationStatus: ObjectId(conservationStatusExpress),
                     }
                 
             })
@@ -218,25 +224,25 @@ async function main() {
     })
 
     //create new fact for specific species
-    app.post('/orchid_facts/:species_id', async function(req, res){
-        try{
-            let fact = req.body.fact;
-            let datePosted = new Date();
+    // app.post('/orchid_facts/:species_id', async function(req, res){
+    //     try{
+    //         let fact = req.body.fact;
+    //         let datePosted = new Date();
 
-            const db = MongoUtil.getDB();
+    //         const db = MongoUtil.getDB();
 
-            let results = await db.collection(facts_collection).insertOne({
-                'fact': fact,
-                'datePosted': datePosted
-            })
+    //         let results = await db.collection(facts_collection).insertOne({
+    //             'fact': fact,
+    //             'datePosted': datePosted
+    //         })
 
-            res.status(200).send(results)
+    //         res.status(200).send(results)
 
 
-        } catch(e){
-            res.status(500).json({"message":"Internal server error. Please contact administrator"})
-        }
-    })
+    //     } catch(e){
+    //         res.status(500).json({"message":"Internal server error. Please contact administrator"})
+    //     }
+    // })
 
     // app.get()
 
@@ -259,21 +265,15 @@ async function main() {
     })
 
     //add new favourite to user
-    app.post('/users/:user_id/favourites', async function(req, res){
+    app.post('/users/:user_id/favourites/:species_id', async function(req, res){
         try{
-            let favouriteOrchid = req.body.orchidId;
-            let officialName = req.body.favourites.officialName;
-
             const db = MongoUtil.getDB();
 
             let results = await db.collection(usersCollection).updateOne({
                 "_id":ObjectId(req.params.user_id)
             },{
                 '$push':{
-                    'favourites': {
-                        'speciesId': ObjectId(favouriteOrchid),
-                        'officialName': officialName
-                    }
+                    'favourites': ObjectId(req.params.species_id)
                 }
             })
 
@@ -290,16 +290,36 @@ async function main() {
             const db = MongoUtil.getDB();
             let results = await db.collection(usersCollection).find({},{
                 'projection': {
-                    'favourites.officialName':1
+                    'favourites':1
                 }
             }).toArray();
-            
+
             res.status(200).send(results)
         } catch(e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
             console.log(e)
         }
     })
+
+    app.delete('/users/:user_id/favourites/:species_id', async function (req, res){
+        try {
+            console.log(req.params.species_id, req.params.user_id)
+            const db = MongoUtil.getDB();
+            await db.collection(usersCollection).updateOne({
+                '_id': ObjectId(req.params.user_id)
+            },{
+                '$pull' : {
+                    'favourites': ObjectId(req.params.species_id)
+                }
+            })
+            res.status(200)
+            res.send("done")
+        } catch(e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
+
 
 
 }
