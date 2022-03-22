@@ -3,6 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 const ObjectId = require('mongodb').ObjectId;
 const MongoUtil = require('./MongoUtil');
+const validation = require('./middleware/validationMiddleware');
+const schema = require('./validations/schemaValidations')
 
 const app = express();
 
@@ -32,7 +34,7 @@ async function main() {
 
     //create orchid species document and insert into species collection
     //check for duplicates in officialName in posting??
-    app.post ('/orchid_species', async function(req, res){
+    app.post ('/orchid_species', validation.validation(schema.speciesSchema), async function(req, res){
         console.log("===================post orchid species================")
         try{
             let {
@@ -247,7 +249,7 @@ async function main() {
     // app.get()
 
     //create new user in users collection
-    app.post('/users', async function(req, res){
+    app.post('/users', validation.validation(schema.userSchema), async function(req, res){
         try{
             let {userEmail} = req.body;
 
