@@ -167,7 +167,7 @@ async function main() {
 
     //update with yup validation
     // update document in orchids species collection
-    app.put('/orchid_species/:id', async function(req, res){
+    app.put('/orchid_species/:species_id', async function(req, res){
         try{
             let {
                 commonName, officialName, genus, species,
@@ -196,7 +196,7 @@ async function main() {
             const db = MongoUtil.getDB();
 
             let results = await db.collection(species_collection).updateOne({
-                '_id': ObjectId(req.params.id)},
+                '_id': ObjectId(req.params.species_id)},
                 {
                     '$set':{
                         commonName,
@@ -317,7 +317,38 @@ async function main() {
                 favourites : []
         })
         res.status(200).send(results)
-        } catch {
+        } catch(e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
+
+    //edit user email in users collection
+    app.put('/users/:user_id', validation.validation(schema.userSchema), async function(req, res){
+        try{
+            console.log(req.params.user_id)
+            let results = await MongoUtil.getDB().collection(usersCollection).updateOne({
+                '_id':ObjectId(req.params.user_id)
+            },{
+                '$set': {
+                    userEmail: req.body.userEmail
+                }
+            })
+            res.status(200).send(results)
+
+        } catch(e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            console.log(e)
+        }
+    })
+
+    app.delete('/users/:user_id', async function (req, res){
+        try {
+            await MongoUtil.getDB().collection(usersCollection).deleteOne({
+                '_id': ObjectId(req.params.user_id)
+            })
+            res.status(200).send("User deleted successfully")
+        } catch(e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
             console.log(e)
         }
