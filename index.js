@@ -420,6 +420,6 @@ async function main() {
 
 main();
 
-app.listen(port, function(){
+app.listen(process.env.PORT || port, function(){
     console.log("Server has started")
 })
