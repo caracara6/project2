@@ -5,7 +5,6 @@ const ObjectId = require('mongodb').ObjectId;
 const MongoUtil = require('./MongoUtil');
 const validation = require('./middleware/validationMiddleware');
 const schema = require('./validations/schemaValidations');
-const req = require('express/lib/request');
 
 const app = express();
 
@@ -59,7 +58,6 @@ async function main() {
             let creationYearExpress = parseInt(req.body.creation.creationYear);
             let distributionExpress = req.body.distributionId;
             let conservationStatusExpress = req.body.conservationStatusId;
-
             
             let fact = req.body.facts[0].fact
             
@@ -97,6 +95,7 @@ async function main() {
         }
     })
 
+    //redo
     // read orchids species collection
     app.get('/orchid_species', async function(req, res){
         try {
@@ -166,6 +165,7 @@ async function main() {
         }
     })
 
+    //update with yup validation
     // update document in orchids species collection
     app.put('/orchid_species/:id', async function(req, res){
         try{
@@ -226,6 +226,7 @@ async function main() {
         }
     })
 
+    //working
     // create new fact for specific species
     app.post('/orchid_species/:species_id/facts', async function(req, res){
         try{
@@ -244,17 +245,16 @@ async function main() {
                     }
                 }
             })
-
             res.status(200).send(results)
-
-
         } catch(e){
             res.status(500).json({"message":"Internal server error. Please contact administrator"})
         }
     })
 
+    //working
     //update a fact in species collection
     app.put('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
+        try{
         await MongoUtil.getDB().collection(species_collection).updateOne({
             '_id':ObjectId(req.params.species_id),
             'facts._id':ObjectId(req.params.fact_id)
@@ -263,26 +263,48 @@ async function main() {
                 'facts.$.fact': req.body.fact
             }
         })
+        res.status(200).send('fact updated successfully')
+        } catch(e){
+            res.status(500).json({"message":"Internal server error. Please contact administrator"})
+        }
+    }) 
+
+    //working
+    //get all facts of specific orchid
+    app.get('/orchid_species/:species_id/facts', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB()
+                        .collection(species_collection)
+                        .findOne(
+                            {
+                                '_id':ObjectId(req.params.species_id)
+                            },{
+                                'projection': {
+                                    'officialName':1,
+                                    'facts':1
+                                }
+        })
+        res.status(200).json(results)
+        } catch(e){
+            res.status(500).json({"message":"Internal server error. Please contact administrator"})
+        }
     })
 
-    //get all facts of specific orchid
-    // app.get()
-
+    //working
     //delete a fact in species collection
     app.delete('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
         try {
             await MongoUtil.getDB().collection(species_collection).deleteOne({
                 '_id': ObjectId(req.params.species_id),
-                '_id' : ObjectId(req.params.fact_id)
+                'facts._id' : ObjectId(req.params.fact_id)
             })
-            res.status(200)
-            res.send("done")
+            res.status(200).send('fact deleted successfully')
         } catch(e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
-            console.log(e)
         }
     })
 
+    //working
     //create new user in users collection
     app.post('/users', validation.validation(schema.userSchema), async function(req, res){
         try{
@@ -301,6 +323,7 @@ async function main() {
         }
     })
 
+    //working
     //add new favourite to user
     app.post('/users/:user_id/favourites/:species_id', async function(req, res){
         try{
@@ -321,6 +344,7 @@ async function main() {
         }
     })
 
+    //working
     //read all favourites by a user
     app.get('/users/:user_id/favourites', async function(req, res){
         try{
@@ -338,6 +362,7 @@ async function main() {
         }
     })
 
+    //working
     //delete a favourite from particular user in users collection
     app.delete('/users/:user_id/favourites/:species_id', async function (req, res){
         try {
