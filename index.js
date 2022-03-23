@@ -380,7 +380,9 @@ async function main() {
     app.get('/users/:user_id/favourites', async function(req, res){
         try{
             const db = MongoUtil.getDB();
-            let results = await db.collection(usersCollection).find({},{
+            let results = await db.collection(usersCollection).findOne({
+                '_id':ObjectId(req.params.user_id)
+            },{
                 'projection': {
                     'favourites':1
                 }
