@@ -1,5 +1,7 @@
 const yup = require('yup')
 
+const imgUrl = /(https?:\/\/.*\.(?:png|jpg))/i
+
 speciesSchema = yup.object({
     commonName: yup.string().min(5),
     officialName: yup.string().min(10).required(),
@@ -14,7 +16,7 @@ speciesSchema = yup.object({
     petalPattern: yup.string().required(),
     scents: yup.array().of(yup.string()).required(),
     floralGrouping: yup.string(),
-    imageUrl:  yup.string().url().required(),
+    imageUrl:  yup.string().matches(imgUrl,'URL is not valid').required(),
     distribution: yup.string().required(),
     facts: yup.array().of(yup.object({fact:yup.string()}))
 })

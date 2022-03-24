@@ -14,8 +14,7 @@ app.use(cors());
 
 const port = 3000;
 
-const species_collection="species";
-const facts_collection="facts"
+const speciesCollection="species";
 const usersCollection="users"
 
 console.log(process.env.MONGO_URI)
@@ -28,9 +27,9 @@ function trimAway(array) {
 
 async function main() {
     await MongoUtil.connect(process.env.MONGO_URI, "tgc16_p2_orchids");
-    app.get('/', (req, res) => {
-        res.send('Hello World')
-    })
+    // app.get('/', (req, res) => {
+    //     res.send('Hello World')
+    // })
 
     //create orchid species document and insert into species collection
     //check for duplicates in officialName in posting??
@@ -63,7 +62,7 @@ async function main() {
             
             const db = MongoUtil.getDB();
 
-            let results = await db.collection(species_collection).insertOne({
+            let results = await db.collection(speciesCollection).insertOne({
                             commonName,
                             officialName,
                             genus,
@@ -144,7 +143,7 @@ async function main() {
 
             const db = MongoUtil.getDB();
 
-            let species = await db.collection(species_collection).find(criteria, {
+            let species = await db.collection(speciesCollection).find(criteria, {
                 'projection': {
                     "commonName": 1,
                     "officialName": 1,
@@ -165,9 +164,9 @@ async function main() {
         }
     })
 
-    //update with yup validation
+    //working
     // update document in orchids species collection
-    app.put('/orchid_species/:species_id', async function(req, res){
+    app.put('/orchid_species/:species_id', validation.validation(schema.speciesSchema), async function(req, res){
         try{
             let {
                 commonName, officialName, genus, species,
@@ -195,7 +194,7 @@ async function main() {
 
             const db = MongoUtil.getDB();
 
-            let results = await db.collection(species_collection).updateOne({
+            let results = await db.collection(speciesCollection).updateOne({
                 '_id': ObjectId(req.params.species_id)},
                 {
                     '$set':{
@@ -234,7 +233,7 @@ async function main() {
 
             const db = MongoUtil.getDB();
 
-            let results = await db.collection(species_collection).updateOne({
+            let results = await db.collection(speciesCollection).updateOne({
                 '_id': ObjectId(req.params.species_id)
             },{ 
                 '$push' : {
@@ -255,7 +254,7 @@ async function main() {
     //update a fact in species collection
     app.put('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
         try{
-        await MongoUtil.getDB().collection(species_collection).updateOne({
+        await MongoUtil.getDB().collection(speciesCollection).updateOne({
             '_id':ObjectId(req.params.species_id),
             'facts._id':ObjectId(req.params.fact_id)
         },{
@@ -274,7 +273,7 @@ async function main() {
     app.get('/orchid_species/:species_id/facts', async function(req, res){
         try{
             let results = await MongoUtil.getDB()
-                        .collection(species_collection)
+                        .collection(speciesCollection)
                         .findOne(
                             {
                                 '_id':ObjectId(req.params.species_id)
@@ -294,7 +293,7 @@ async function main() {
     //delete a fact in species collection
     app.delete('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
         try {
-            await MongoUtil.getDB().collection(species_collection).deleteOne({
+            await MongoUtil.getDB().collection(speciesCollection).deleteOne({
                 '_id': ObjectId(req.params.species_id),
                 'facts._id' : ObjectId(req.params.fact_id)
             })
@@ -308,21 +307,18 @@ async function main() {
     //create new user in users collection
     app.post('/users', validation.validation(schema.userSchema), async function(req, res){
         try{
-            let {userEmail} = req.body;
-
-            const db = MongoUtil.getDB();
-
-            let results = await db.collection(usersCollection).insertOne({
-                userEmail,
+            let results = await MongoUtil.getDB().collection(usersCollection).insertOne({
+                userEmail: req.body.userEmail,
                 favourites : []
         })
-        res.status(200).send(results)
+        res.status(200).json(results)
         } catch(e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
             console.log(e)
         }
     })
 
+    //working
     //edit user email in users collection
     app.put('/users/:user_id', validation.validation(schema.userSchema), async function(req, res){
         try{
@@ -342,6 +338,8 @@ async function main() {
         }
     })
 
+    //working
+    //delete user in users collection
     app.delete('/users/:user_id', async function (req, res){
         try {
             await MongoUtil.getDB().collection(usersCollection).deleteOne({
@@ -384,9 +382,11 @@ async function main() {
                 '_id':ObjectId(req.params.user_id)
             },{
                 'projection': {
+                    "_id" : 0,
                     'favourites':1
                 }
-            }).toArray();
+            });
+            console.log(results)
 
             res.status(200).send(results)
         } catch(e) {
