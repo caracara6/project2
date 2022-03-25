@@ -5,6 +5,7 @@ const ObjectId = require('mongodb').ObjectId;
 const MongoUtil = require('./MongoUtil');
 const validation = require('./middleware/validationMiddleware');
 const schema = require('./validations/schemaValidations');
+const req = require('express/lib/request');
 
 const app = express();
 
@@ -27,10 +28,11 @@ function trimAway(array) {
 
 async function main() {
     await MongoUtil.connect(process.env.MONGO_URI, "tgc16_p2_orchids");
-    // app.get('/', (req, res) => {
-    //     res.send('Hello World')
-    // })
+    app.get('/', (req, res) => {
+        res.send('Hello World')
+    })
 
+    //working
     //create orchid species document and insert into species collection
     //check for duplicates in officialName in posting??
     app.post ('/orchid_species', validation.validation(schema.speciesSchema), async function(req, res){
@@ -143,22 +145,24 @@ async function main() {
 
             const db = MongoUtil.getDB();
 
-            let species = await db.collection(speciesCollection).find(criteria, {
-                'projection': {
-                    "commonName": 1,
-                    "officialName": 1,
-                    "genus":1,
-                    "creation.creatorName": 1,
-                    "creation.creationYear": 1,
-                    "colours":1,
-                    "imageUrl":1,
-                    "distribution": 1,
-                    "conservationStatus": 1
-                    //how to project distribution name and conservationStatus name instead of id?
-                }
-            }).toArray();
+            let results = await db.collection(speciesCollection).find(criteria
+            //     , {
+            //     'projection': {
+            //         "commonName": 1,
+            //         "officialName": 1,
+            //         "genus":1,
+            //         "creation.creatorName": 1,
+            //         "creation.creationYear": 1,
+            //         "colours":1,
+            //         "imageUrl":1,
+            //         "distribution": 1,
+            //         "conservationStatus": 1
+            //         //how to project distribution name and conservationStatus name instead of id?
+            //     }
+            // }
+            ).toArray();
 
-            res.status(200).send(species)
+            res.status(200).send(results)
         } catch (e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
         }
@@ -299,6 +303,17 @@ async function main() {
             })
             res.status(200).send('fact deleted successfully')
         } catch(e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
+    //working
+    //get all regions in regions collection
+    app.get('/distribution', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB().collection('distribution').find().toArray();
+            res.status(200).send(results);
+        } catch (e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
         }
     })
