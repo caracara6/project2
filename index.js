@@ -308,10 +308,21 @@ async function main() {
     })
 
     //working
-    //get all regions in regions collection
+    //get all regions in distribution collection
     app.get('/distribution', async function(req, res){
         try{
             let results = await MongoUtil.getDB().collection('distribution').find().toArray();
+            res.status(200).send(results);
+        } catch (e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
+    //working
+    //get all conservation statuses in conservation collection
+    app.get('/conservation', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB().collection('conservation').find().toArray();
             res.status(200).send(results);
         } catch (e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
