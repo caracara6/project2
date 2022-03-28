@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.use(cors());
 
-const port = 3000;
+const port = 8888;
 
 const speciesCollection="species";
 const usersCollection="users"
@@ -55,12 +55,14 @@ async function main() {
             scents = Array.isArray(scents) ? scents : [scents];
             trimAway(scents);
 
+            //
+
             let creatorNameExpress = req.body.creation.creatorName;
             let creationYearExpress = parseInt(req.body.creation.creationYear);
-            let distributionExpress = req.body.distributionId;
-            let conservationStatusExpress = req.body.conservationStatusId;
+            let distributionExpress = req.body.distribution;
+            let conservationStatusExpress = req.body.conservationStatus;
             
-            let fact = req.body.facts[0].fact
+            // let fact = req.body.facts[0].fact
             
             const db = MongoUtil.getDB();
 
@@ -82,11 +84,11 @@ async function main() {
                             distribution: ObjectId(distributionExpress),
                             conservationStatus: ObjectId(conservationStatusExpress),
                             facts:[
-                                {
-                                    '_id': new ObjectId(),
-                                    'fact' : fact,
-                                    'datePosted':new Date()
-                                }
+                                // {
+                                //     '_id': new ObjectId(),
+                                //     'fact' : fact,
+                                //     'datePosted':new Date()
+                                // }
                             ]
                         })
             res.status(200).send(results)
@@ -95,6 +97,9 @@ async function main() {
             console.log(e)
         }
     })
+
+
+    // need to create route to post orchid facts??
 
     //redo
     // read orchids species collection

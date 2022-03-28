@@ -6,7 +6,7 @@ speciesSchema = yup.object({
     commonName: yup.string().min(5),
     officialName: yup.string().min(10).required(),
     genus: yup.string().min(3).required(),
-    species: yup.string().min(3).required(),
+    species: yup.string().min(3),
     hybridParents: yup.array().of(yup.string()),
     creation: yup.object({
         creatorName: yup.string(),
