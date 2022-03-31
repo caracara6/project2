@@ -3,14 +3,15 @@ const yup = require('yup')
 const imgUrl = /(https?:\/\/.*\.(?:png|jpg))/i
 
 speciesSchema = yup.object({
-    commonName: yup.string().min(5),
+    commonName: yup.string().min(5).required(),
     officialName: yup.string().min(10).required(),
     genus: yup.string().min(3).required(),
-    species: yup.string().min(3),
+    // species: yup.string().min(3),
     hybridParents: yup.array().of(yup.string()),
     creation: yup.object({
         creatorName: yup.string(),
-        creationYear: yup.number().positive().integer()
+        creationYear: yup.string()
+        // yup.number().positive().integer()
     }),
     colours: yup.array().of(yup.string()).required(),
     petalPattern: yup.string().required(),
@@ -18,6 +19,7 @@ speciesSchema = yup.object({
     floralGrouping: yup.string(),
     imageUrl:  yup.string().matches(imgUrl,'URL is not valid').required(),
     distribution: yup.string().required(),
+    conservationStatus: yup.string().required(),
     facts: yup.array().of(yup.object({fact:yup.string()}))
 })
 

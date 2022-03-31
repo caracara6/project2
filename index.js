@@ -5,7 +5,6 @@ const ObjectId = require('mongodb').ObjectId;
 const MongoUtil = require('./MongoUtil');
 const validation = require('./middleware/validationMiddleware');
 const schema = require('./validations/schemaValidations');
-const req = require('express/lib/request');
 
 const app = express();
 
@@ -22,7 +21,6 @@ console.log(process.env.MONGO_URI)
 
 function trimAway(array) {
     array = array.map(eachItem => eachItem.trim())
-    console.log(array)
     return array
 }
 
@@ -39,7 +37,8 @@ async function main() {
         console.log("===================post orchid species================")
         try{
             let {
-                commonName, officialName, genus, species,
+                commonName, officialName, genus, 
+                // species,
                 petalPattern, floralGrouping, imageUrl
             } = req.body
 
@@ -70,7 +69,7 @@ async function main() {
                             commonName,
                             officialName,
                             genus,
-                            species,
+                            // species,
                             hybridParents,
                             creation: {
                                 'creatorName': creatorNameExpress,
@@ -106,27 +105,54 @@ async function main() {
     app.get('/orchid_species', async function(req, res){
         try {
 
+            console.log(req.query)
+
             let criteria = {};
+            let searchTextFields = ["commonName", "officialName", "genus", "petalPattern"];
 
-            if(req.query.commonName) {
-                criteria['commonName'] = {
-                    '$regex': req.query.commonName,
-                    '$options': 'i'
+            if(req.query.searchPrompt) {
+                criteria['$or'] = [];
+                req.query.searchPrompt.split(" ").map(
+                    eachWord => {
+                        if (eachWord.trim().length > 0){
+                            for (let field of searchTextFields) {
+                                criteria['$or'].push(
+                                    {
+                                        [field]: {
+                                            '$regex': eachWord,
+                                            '$options': 'i'
+                                        }
+                                    }
+                                )
+                            }
+
+                            // criteria['$or'] = [
+
+                            //     {
+                            //         "commonName" : {
+                            //             "$regex": eachWord,
+                            //             "$options" : "i"
+                            //         }
+                            //     }
+                                
+                            // ]
+                        }
+                    }
+                )
+            }
+
+            if(req.query.colourFilter) {
+                criteria['colours']={
+                    '$in': req.query.colourFilter
                 }
             }
 
-            if(req.query.officialName) {
-                criteria['officialName'] = {
-                    '$regex': req.query.officialName,
-                    '$options': 'i'
-                }
+            if(req.query.distributionFilter){
+                criteria['distribution'] = ObjectId(req.query.distributionFilter)
             }
 
-            if(req.query.genus) {
-                criteria['genus'] = {
-                    '$regex': req.query.genus,
-                    '$options': 'i'
-                }
+            if(req.query.conservationFilter){
+                criteria['conservationStatus'] = ObjectId(req.query.conservationFilter)
             }
 
             // query within objects??
@@ -142,32 +168,26 @@ async function main() {
                 }
             }
 
-            if(req.query.colours) {
-                criteria['colours']={
-                    '$in': [req.query.colours]
-                }
-            }
+            
 
             const db = MongoUtil.getDB();
 
-            let results = await db.collection(speciesCollection).find(criteria
-            //     , {
-            //     'projection': {
-            //         "commonName": 1,
-            //         "officialName": 1,
-            //         "genus":1,
-            //         "creation.creatorName": 1,
-            //         "creation.creationYear": 1,
-            //         "colours":1,
-            //         "imageUrl":1,
-            //         "distribution": 1,
-            //         "conservationStatus": 1
-            //         //how to project distribution name and conservationStatus name instead of id?
-            //     }
-            // }
-            ).toArray();
+            let results = await db.collection(speciesCollection).find(criteria).toArray();
 
+            // console.log(criteria)
             res.status(200).send(results)
+        } catch (e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
+    //get specific document in species collection
+    app.get('/orchid_species/:species_id', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB().collection(speciesCollection).findOne({
+                '_id':ObjectId(req.params.species_id)
+            })
+            res.status(200).send(results);
         } catch (e) {
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
         }
@@ -178,7 +198,8 @@ async function main() {
     app.put('/orchid_species/:species_id', validation.validation(schema.speciesSchema), async function(req, res){
         try{
             let {
-                commonName, officialName, genus, species,
+                commonName, officialName, genus, 
+                // species,
                 petalPattern, floralGrouping, imageUrl
             } = req.body
 
@@ -210,7 +231,7 @@ async function main() {
                         commonName,
                         officialName,
                         genus,
-                        species,
+                        // species,
                         hybridParents,
                         creation: {
                             'creatorName': creatorNameExpress,
@@ -323,6 +344,17 @@ async function main() {
         }
     })
 
+    app.get('/distribution/:distribution_id', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB().collection('distribution').findOne({
+                '_id':ObjectId(req.params.distribution_id)
+            })
+            res.status(200).send(results);
+        } catch (e) {
+            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
     //working
     //get all conservation statuses in conservation collection
     app.get('/conservation', async function(req, res){
@@ -353,7 +385,6 @@ async function main() {
     //edit user email in users collection
     app.put('/users/:user_id', validation.validation(schema.userSchema), async function(req, res){
         try{
-            console.log(req.params.user_id)
             let results = await MongoUtil.getDB().collection(usersCollection).updateOne({
                 '_id':ObjectId(req.params.user_id)
             },{
@@ -411,12 +442,14 @@ async function main() {
             const db = MongoUtil.getDB();
             let results = await db.collection(usersCollection).findOne({
                 '_id':ObjectId(req.params.user_id)
-            },{
-                'projection': {
-                    "_id" : 0,
-                    'favourites':1
-                }
-            });
+            }
+            // ,{
+            //     'projection': {
+            //         "_id" : 0,
+            //         'favourites':1
+            //     }
+            // }
+            );
             console.log(results)
 
             res.status(200).send(results)
@@ -430,7 +463,6 @@ async function main() {
     //delete a favourite from particular user in users collection
     app.delete('/users/:user_id/favourites/:species_id', async function (req, res){
         try {
-            console.log(req.params.species_id, req.params.user_id)
             const db = MongoUtil.getDB();
             await db.collection(usersCollection).updateOne({
                 '_id': ObjectId(req.params.user_id)
