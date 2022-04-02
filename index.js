@@ -217,8 +217,8 @@ async function main() {
 
             let creatorNameExpress = req.body.creation.creatorName;
             let creationYearExpress = parseInt(req.body.creation.creationYear);
-            let distributionExpress = req.body.distributionId;
-            let conservationStatusExpress = req.body.conservationStatusId;
+            let distributionExpress = req.body.distribution;
+            let conservationStatusExpress = req.body.conservationStatus;
 
             // need to extract out facts in order to not erase facts with every update
 
@@ -309,7 +309,7 @@ async function main() {
                                 '_id':ObjectId(req.params.species_id)
                             },{
                                 'projection': {
-                                    'officialName':1,
+                                    '_id':0,
                                     'facts':1
                                 }
         })
@@ -323,9 +323,14 @@ async function main() {
     //delete a fact in species collection
     app.delete('/orchid_species/:species_id/facts/:fact_id', async function(req, res){
         try {
-            await MongoUtil.getDB().collection(speciesCollection).deleteOne({
-                '_id': ObjectId(req.params.species_id),
-                'facts._id' : ObjectId(req.params.fact_id)
+            await MongoUtil.getDB().collection(speciesCollection).updateOne({
+                '_id': ObjectId(req.params.species_id)
+            },{
+                '$pull':{
+                    'facts':{
+                        '_id' : ObjectId(req.params.fact_id)
+                    }
+                }
             })
             res.status(200).send('fact deleted successfully')
         } catch(e) {
