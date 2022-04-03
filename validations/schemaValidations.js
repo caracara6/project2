@@ -4,7 +4,7 @@ const imgUrl = /(https?:\/\/.*\.(?:png|jpg))/i
 
 speciesSchema = yup.object({
     commonName: yup.string().min(5).required(),
-    officialName: yup.string().min(10).required(),
+    officialName: yup.string().min(5).required(),
     genus: yup.string().min(3).required(),
     // species: yup.string().min(3),
     hybridParents: yup.array().of(yup.string()),
@@ -24,7 +24,7 @@ speciesSchema = yup.object({
 })
 
 userSchema = yup.object({
-    userEmail:yup.string().email().required()
+    userEmail:yup.string().email("Please enter a valid email").required("Please enter your email")
 })
 
 module.exports = {speciesSchema, userSchema}

@@ -17,6 +17,9 @@ const port = 8888;
 const speciesCollection="species";
 const usersCollection="users"
 
+// utils
+const utils = require('./utils.js')
+
 console.log(process.env.MONGO_URI)
 
 function trimAway(array) {
@@ -92,7 +95,7 @@ async function main() {
                         })
             res.status(200).send(results)
         } catch (e){
-            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            res.status(500).send({"message": e})
             console.log(e)
         }
     })
@@ -105,10 +108,19 @@ async function main() {
     app.get('/orchid_species', async function(req, res){
         try {
 
-            console.log(req.query)
+            // console.log(req.query)
 
             let criteria = {};
             let searchTextFields = ["commonName", "officialName", "genus", "petalPattern"];
+
+            // criteria['$or'] = [
+                            //     {
+                            //         "commonName" : {
+                            //             "$regex": eachWord,
+                            //             "$options" : "i"
+                            //         }
+                            //     }
+                            // ]
 
             if(req.query.searchPrompt) {
                 criteria['$or'] = [];
@@ -126,16 +138,9 @@ async function main() {
                                 )
                             }
 
-                            // criteria['$or'] = [
+                            //search other fields here, correct scope?
 
-                            //     {
-                            //         "commonName" : {
-                            //             "$regex": eachWord,
-                            //             "$options" : "i"
-                            //         }
-                            //     }
-                                
-                            // ]
+                            
                         }
                     }
                 )
@@ -147,12 +152,58 @@ async function main() {
                 }
             }
 
+            // if(req.query.distributionFilterArray.length > 0){
+            //     criteria['$and'] = []
+            //     for(let d of distributionFilterArray){
+            //         criteria['$and'].push(
+            //             {
+            //                 distribution: 
+            //                     ObjectId(d)
+            //                 
+            //             }
+            //         )
+            //     }
+            // }
+
             if(req.query.distributionFilter){
                 criteria['distribution'] = ObjectId(req.query.distributionFilter)
             }
 
             if(req.query.conservationFilter){
                 criteria['conservationStatus'] = ObjectId(req.query.conservationFilter)
+            }
+
+            console.log(req.query.userFavouriteIds)
+
+            if(req.query.userFavouriteIds){
+                criteria['$or'] = [];
+                req.query.userFavouriteIds.map(
+                    eachId => criteria['$or'].push(
+                        {
+                            _id: ObjectId(eachId)
+                        }
+                    )
+                )
+            }
+
+            if(req.query.noFacts){
+                criteria['facts'] = {
+                    '$size': parseInt(req.query.noFacts)
+                }
+            }
+
+            // if(req.query.factsGte3){
+            //     criteria['facts'] = {
+            //         '$size': {
+            //             '$gte': parseInt(req.query.factsGte3)
+            //         }
+            //     }
+            // }
+
+            if(req.query.factsGte3){
+                criteria['facts.2'] = {
+                    '$exists': true
+                }
             }
 
             // query within objects??
@@ -174,10 +225,10 @@ async function main() {
 
             let results = await db.collection(speciesCollection).find(criteria).toArray();
 
-            // console.log(criteria)
+            console.log('criteria ==>' + criteria)
             res.status(200).send(results)
         } catch (e) {
-            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            res.status(500).send({"message": e})
         }
     })
 
@@ -374,15 +425,22 @@ async function main() {
     //working
     //create new user in users collection
     app.post('/users', validation.validation(schema.userSchema), async function(req, res){
+
+        let {userEmail} = req.body
+
         try{
+
+            if(!(await utils.checkEmailDuplicate(userEmail))){
+                throw "This email is already registered on this website"
+            }
             let results = await MongoUtil.getDB().collection(usersCollection).insertOne({
-                userEmail: req.body.userEmail,
+                userEmail,
                 favourites : []
-        })
-        res.status(200).json(results)
+            })
+
+        res.status(200).send(results)
         } catch(e) {
-            res.status(500).send({"message":"Internal server error. Please contact administrator"})
-            console.log(e)
+            res.status(500).send({"message": e})
         }
     })
 
@@ -442,11 +500,10 @@ async function main() {
 
     //working
     //read all favourites by a user
-    app.get('/users/:user_id/favourites', async function(req, res){
+    app.get('/users', async function(req, res){
         try{
-            const db = MongoUtil.getDB();
-            let results = await db.collection(usersCollection).findOne({
-                '_id':ObjectId(req.params.user_id)
+            let results = await MongoUtil.getDB().collection(usersCollection).findOne({
+                userEmail:req.query.userEmail
             }
             // ,{
             //     'projection': {
@@ -455,12 +512,15 @@ async function main() {
             //     }
             // }
             );
-            console.log(results)
+
+            if(!results){
+                throw "This email is not registered with this website."
+            }
+
 
             res.status(200).send(results)
         } catch(e) {
-            res.status(500).send({"message":"Internal server error. Please contact administrator"})
-            console.log(e)
+            res.status(500).send({"message": e})
         }
     })
 
