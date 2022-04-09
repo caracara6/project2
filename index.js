@@ -165,15 +165,47 @@ async function main() {
             //     }
             // }
 
-            if(req.query.distributionFilter){
+            if(req.query.distributionFilter && req.query.distributionFilter !== 'noDistributionSelected'){
                 criteria['distribution'] = ObjectId(req.query.distributionFilter)
             }
 
-            if(req.query.conservationFilter){
+            if(req.query.conservationFilter && req.query.conservationFilter !== 'noConservationSelected'){
                 criteria['conservationStatus'] = ObjectId(req.query.conservationFilter)
             }
 
-            console.log(req.query.userFavouriteIds)
+            if(req.query.noFacts){
+                criteria['facts'] = {
+                    '$size': parseInt(req.query.noFacts)
+                }
+            }
+
+            if(req.query.factsGte3){
+                criteria['facts.2'] = {
+                    '$exists': true
+                }
+            }
+
+            // .length>0
+
+            
+            
+
+            
+
+            // query within objects??
+            // if(req.query.creationYearBefore) {
+            //     criteria['creation.creationYear'] = {
+            //         '$lte': parseInt(req.query.creationYearBefore),
+            //     }
+            // }
+
+            // if(req.query.creationYearAfter) {
+            //     criteria['creation.creationYear'] = {
+            //         '$gte': parseInt(req.query.creationYearAfter),
+            //     }
+            // }
+
+            console.log("userfaves" + req.query.userFavouriteIds)
 
             if(req.query.userFavouriteIds){
                 criteria['$or'] = [];
@@ -186,48 +218,37 @@ async function main() {
                 )
             }
 
-            if(req.query.noFacts){
-                criteria['facts'] = {
-                    '$size': parseInt(req.query.noFacts)
-                }
-            }
+            let results = await MongoUtil.getDB().collection(speciesCollection).find(criteria).toArray();
 
-            // if(req.query.factsGte3){
-            //     criteria['facts'] = {
-            //         '$size': {
-            //             '$gte': parseInt(req.query.factsGte3)
-            //         }
-            //     }
-            // }
-
-            if(req.query.factsGte3){
-                criteria['facts.2'] = {
-                    '$exists': true
-                }
-            }
-
-            // query within objects??
-            if(req.query.creationYearBefore) {
-                criteria['creation.creationYear'] = {
-                    '$lte': parseInt(req.query.creationYearBefore),
-                }
-            }
-
-            if(req.query.creationYearAfter) {
-                criteria['creation.creationYear'] = {
-                    '$gte': parseInt(req.query.creationYearAfter),
-                }
-            }
-
-            
-
-            const db = MongoUtil.getDB();
-
-            let results = await db.collection(speciesCollection).find(criteria).toArray();
-
-            console.log('criteria ==>' + criteria)
+            console.log('criteria ==>' + JSON.stringify(criteria))
             res.status(200).send(results)
         } catch (e) {
+            res.status(500).send({"message": e})
+        }
+    })
+
+    app.get('/orchid_species/user_favourites', async function(req, res){
+        try{
+
+            let criteria = {};
+
+            if(req.query.userFavouriteIds){
+                criteria['$or'] = [];
+                req.query.userFavouriteIds.map(
+                    eachId => criteria['$or'].push(
+                        {
+                            _id: ObjectId(eachId)
+                        }
+                    )
+                )
+                let results = await MongoUtil.getDB().collection(speciesCollection).find(criteria).toArray();
+
+                console.log('criteria ==>' + JSON.stringify(criteria))
+                res.status(200).send(results)
+            } else{
+                res.status(200).send([])
+            }
+        } catch(e){
             res.status(500).send({"message": e})
         }
     })
@@ -303,6 +324,20 @@ async function main() {
 
         } catch(e){
             res.status(500).send({"message":"Internal server error. Please contact administrator"})
+        }
+    })
+
+    //working
+    //delete a specific document from species collection
+    app.delete('/orchid_species/:species_id', async function(req, res){
+        try{
+            await MongoUtil.getDB().collection(speciesCollection).deleteOne({
+                '_id': ObjectId(req.params.species_id)
+            })
+            res.status(200).send({'message': "This species has been deleted successfully. You will now be redirected to the main page. "})
+        }   catch(e){
+            res.status(500).send({'message': e})
+            console.log(e)
         }
     })
 
@@ -447,18 +482,26 @@ async function main() {
     //working
     //edit user email in users collection
     app.put('/users/:user_id', validation.validation(schema.userSchema), async function(req, res){
+        
+        let {userEmail} = req.body
+
         try{
+
+            if(!(await utils.checkEmailDuplicate(userEmail))){
+                throw "This email is already registered on this website"
+            }
+
             let results = await MongoUtil.getDB().collection(usersCollection).updateOne({
                 '_id':ObjectId(req.params.user_id)
             },{
                 '$set': {
-                    userEmail: req.body.userEmail
+                    userEmail
                 }
             })
             res.status(200).send(results)
 
         } catch(e) {
-            res.status(500).send({"message":"Internal server error. Please contact administrator"})
+            res.status(500).send({"message": e})
             console.log(e)
         }
     })
@@ -499,24 +542,17 @@ async function main() {
     })
 
     //working
-    //read all favourites by a user
+    //read all information of a user
     app.get('/users', async function(req, res){
         try{
             let results = await MongoUtil.getDB().collection(usersCollection).findOne({
                 userEmail:req.query.userEmail
             }
-            // ,{
-            //     'projection': {
-            //         "_id" : 0,
-            //         'favourites':1
-            //     }
-            // }
             );
 
             if(!results){
                 throw "This email is not registered with this website."
             }
-
 
             res.status(200).send(results)
         } catch(e) {
@@ -525,7 +561,26 @@ async function main() {
     })
 
     //working
-    //delete a favourite from particular user in users collection
+    //get user favourites of species ids
+    app.get('/users/:user_id', async function(req, res){
+        try{
+            let results = await MongoUtil.getDB().collection(usersCollection).findOne({
+                '_id': ObjectId(req.params.user_id)
+            },{
+                'projection': {
+                    _id:0,
+                    favourites: 1
+                }
+            }
+            )
+            res.status(200).send(results)
+        } catch(e) {
+            res.status(500).send({"message": e})
+        }
+    })
+
+    //working
+    //delete a favourite from specific user in users collection
     app.delete('/users/:user_id/favourites/:species_id', async function (req, res){
         try {
             const db = MongoUtil.getDB();

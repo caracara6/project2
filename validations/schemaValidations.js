@@ -3,7 +3,7 @@ const yup = require('yup')
 const imgUrl = /(https?:\/\/.*\.(?:png|jpg))/i
 
 speciesSchema = yup.object({
-    commonName: yup.string().min(5).required(),
+    commonName: yup.string().min(3).required(),
     officialName: yup.string().min(5).required(),
     genus: yup.string().min(3).required(),
     // species: yup.string().min(3),
