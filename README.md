@@ -12,6 +12,88 @@ The front-end repository can be found [here](https://github.com/caracara6/projec
 
 Project premise is building a RESTful API wtih MongoDB and Express.js, and performing CRUD using the endpoints.
 
+## Endpoints Documentation
+
+Base API URL: 
+```
+https://tgc16-p2-api.herokuapp.com
+```
+**GET**
+All species:
+```
+/orchid_species
+```
+All species favourited by a user:
+```
+/orchid_species/user_favourites
+```
+All facts belonging to a specific orchid:
+```
+/orchid_species/:species_id/facts
+```
+All distributions:
+```
+/distribution
+```
+All conservation statuses:
+```
+/conservation
+```
+All information by a specific user:
+```
+/users
+```
+
+**POST**
+Create one species document:
+```
+/orchid_species
+```
+Create a fact for a specific species:
+```
+/orchid_species/:species_id/facts
+```
+Create a user:
+```
+/users
+``` 
+User adding a favourite:
+```
+/users/:user_id/favourites/:species_id
+```
+
+**PUT**
+Update a specific species document:
+```
+/orchid_species/:species_id
+```
+Update a fact for a specific species document:
+```
+/orchid_species/:species_id/facts/:fact_id
+```
+Update user email:
+```
+/users/:user_id
+```
+**DELETE**
+Delete a specific species document:
+```
+/orchid_species/:species_id
+```
+Delete a specific fact of a specific species document:
+```
+/orchid_species/:species_id/facts/:fact_id
+```
+Delete a species reference from a specific user document:
+```
+/users/:user_id/favourites/:species_id
+```
+Delete a specific user document:
+```
+/users/:user_id
+```
+
+
 ## Collections in database
 
 There are four collections, two of which (distribution and conservation) are static and maintained by admin.
