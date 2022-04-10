@@ -67,9 +67,15 @@ Sample document:
 * [Express.js](https://expressjs.com/)
     * Web framework for Node.js
 
+* [dotenv](https://www.npmjs.com/package/dotenv)
+    * Stores environment variables separate from code
+
 * [Heroku](https://id.heroku.com/login)
     * API host
 
 * [yup](https://github.com/jquense/yup)
     * Library for schema validation
+
+* [Advanced REST Client](https://github.com/advanced-rest-client)
+    * for testing handling HTTP requests
 

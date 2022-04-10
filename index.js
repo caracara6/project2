@@ -30,18 +30,16 @@ function trimAway(array) {
 async function main() {
     await MongoUtil.connect(process.env.MONGO_URI, "tgc16_p2_orchids");
     app.get('/', (req, res) => {
-        res.send('Hello World')
+        res.send(`Welcome to The Daily Orchid's RESTful API.`)
     })
 
     //working
     //create orchid species document and insert into species collection
-    //check for duplicates in officialName in posting??
     app.post ('/orchid_species', validation.validation(schema.speciesSchema), async function(req, res){
         console.log("===================post orchid species================")
         try{
             let {
                 commonName, officialName, genus, 
-                // species,
                 petalPattern, floralGrouping, imageUrl
             } = req.body
 
@@ -57,22 +55,17 @@ async function main() {
             scents = Array.isArray(scents) ? scents : [scents];
             trimAway(scents);
 
-            //
-
             let creatorNameExpress = req.body.creation.creatorName;
             let creationYearExpress = parseInt(req.body.creation.creationYear);
             let distributionExpress = req.body.distribution;
             let conservationStatusExpress = req.body.conservationStatus;
-            
-            // let fact = req.body.facts[0].fact
-            
+                        
             const db = MongoUtil.getDB();
 
             let results = await db.collection(speciesCollection).insertOne({
                             commonName,
                             officialName,
                             genus,
-                            // species,
                             hybridParents,
                             creation: {
                                 'creatorName': creatorNameExpress,
@@ -85,13 +78,7 @@ async function main() {
                             imageUrl,
                             distribution: ObjectId(distributionExpress),
                             conservationStatus: ObjectId(conservationStatusExpress),
-                            facts:[
-                                // {
-                                //     '_id': new ObjectId(),
-                                //     'fact' : fact,
-                                //     'datePosted':new Date()
-                                // }
-                            ]
+                            facts:[]
                         })
             res.status(200).send(results)
         } catch (e){
@@ -100,15 +87,10 @@ async function main() {
         }
     })
 
-
-    // need to create route to post orchid facts??
-
-    //redo
+    //working
     // read orchids species collection
     app.get('/orchid_species', async function(req, res){
         try {
-
-            // console.log(req.query)
 
             let criteria = {};
             let searchTextFields = ["commonName", "officialName", "genus", "petalPattern"];
@@ -138,9 +120,7 @@ async function main() {
                                 )
                             }
 
-                            //search other fields here, correct scope?
-
-                            
+                            //search other fields here in future?
                         }
                     }
                 )
@@ -151,19 +131,6 @@ async function main() {
                     '$in': req.query.colourFilter
                 }
             }
-
-            // if(req.query.distributionFilterArray.length > 0){
-            //     criteria['$and'] = []
-            //     for(let d of distributionFilterArray){
-            //         criteria['$and'].push(
-            //             {
-            //                 distribution: 
-            //                     ObjectId(d)
-            //                 
-            //             }
-            //         )
-            //     }
-            // }
 
             if(req.query.distributionFilter && req.query.distributionFilter !== 'noDistributionSelected'){
                 criteria['distribution'] = ObjectId(req.query.distributionFilter)
@@ -185,28 +152,6 @@ async function main() {
                 }
             }
 
-            // .length>0
-
-            
-            
-
-            
-
-            // query within objects??
-            // if(req.query.creationYearBefore) {
-            //     criteria['creation.creationYear'] = {
-            //         '$lte': parseInt(req.query.creationYearBefore),
-            //     }
-            // }
-
-            // if(req.query.creationYearAfter) {
-            //     criteria['creation.creationYear'] = {
-            //         '$gte': parseInt(req.query.creationYearAfter),
-            //     }
-            // }
-
-            console.log("userfaves" + req.query.userFavouriteIds)
-
             if(req.query.userFavouriteIds){
                 criteria['$or'] = [];
                 req.query.userFavouriteIds.map(
@@ -220,7 +165,7 @@ async function main() {
 
             let results = await MongoUtil.getDB().collection(speciesCollection).find(criteria).toArray();
 
-            console.log('criteria ==>' + JSON.stringify(criteria))
+            // console.log('criteria ==>' + JSON.stringify(criteria))
             res.status(200).send(results)
         } catch (e) {
             res.status(500).send({"message": e})
@@ -243,7 +188,7 @@ async function main() {
                 )
                 let results = await MongoUtil.getDB().collection(speciesCollection).find(criteria).toArray();
 
-                console.log('criteria ==>' + JSON.stringify(criteria))
+                // console.log('criteria ==>' + JSON.stringify(criteria))
                 res.status(200).send(results)
             } else{
                 res.status(200).send([])
@@ -271,7 +216,6 @@ async function main() {
         try{
             let {
                 commonName, officialName, genus, 
-                // species,
                 petalPattern, floralGrouping, imageUrl
             } = req.body
 
@@ -292,8 +236,6 @@ async function main() {
             let distributionExpress = req.body.distribution;
             let conservationStatusExpress = req.body.conservationStatus;
 
-            // need to extract out facts in order to not erase facts with every update
-
             const db = MongoUtil.getDB();
 
             let results = await db.collection(speciesCollection).updateOne({
@@ -303,7 +245,6 @@ async function main() {
                         commonName,
                         officialName,
                         genus,
-                        // species,
                         hybridParents,
                         creation: {
                             'creatorName': creatorNameExpress,
@@ -598,13 +539,10 @@ async function main() {
             console.log(e)
         }
     })
-
-
-
 }
 
 main();
 
-app.listen(process.env.PORT || port, function(){
+app.listen(process.env.PORT, function(){
     console.log("Server has started")
 })
